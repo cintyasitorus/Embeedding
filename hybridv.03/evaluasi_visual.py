@@ -3,6 +3,15 @@ import numpy as np
 import os, math
 from skimage.metrics import structural_similarity as ssim
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
+DATASET_DIR = os.path.join(PROJECT_ROOT, "dataset")    # global
+GAMBAR_DIR = os.path.join(DATASET_DIR, "gambar")       # folder gambar
+HASIL_DIR = os.path.join(SCRIPT_DIR, "hasil_stego")    # lokal hybrid
+RES_FOLDERS = ["128 x 128", "256 x 256", "512 x 512", "1024 x 1024"]
+
+
 def hitung_kualitas_visual(path_asli, path_stego):
     # 1. Baca kedua gambar
     img_asli = cv2.imread(path_asli)
@@ -55,8 +64,8 @@ def main():
     nama_base = input("\n[2] Masukkan nama file (tanpa .png, cth: image31244): ").strip()
     
     # 3. Format Path Otomatis
-    path_cover = f"dataset/{folder_res}/{nama_base}.png"
-    path_stego = f"hasil_stego/{folder_res}/{nama_base}_stego.png"
+    path_cover = os.path.join(GAMBAR_DIR, folder_res, f"{nama_base}.png")
+    path_stego = os.path.join(HASIL_DIR, folder_res, f"{nama_base}_stego.png")
     
     print(f"\n[*] Membandingkan:")
     print(f"    Asli  : {path_cover}")

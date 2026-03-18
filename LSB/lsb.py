@@ -1,14 +1,17 @@
 import os
-import sys
 import time
 import struct
 from PIL import Image
 from evaluasi_visual import main as evaluasi_main
 from crypt import AESCipher, generate_encryption_key
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATASET_DIR = os.path.join(BASE_DIR, "dataset")
-HASIL_DIR = os.path.join(BASE_DIR, "hasil_stego")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
+DATASET_DIR = os.path.join(PROJECT_ROOT, "dataset")    # global
+GAMBAR_DIR = os.path.join(DATASET_DIR, "gambar")       # folder gambar
+PESAN_DIR = os.path.join(DATASET_DIR, "pesan")         # folder pesan
+HASIL_DIR = os.path.join(SCRIPT_DIR, "hasil_stego")    # lokal LSB
 RES_FOLDERS = ["128 x 128", "256 x 256", "512 x 512", "1024 x 1024"]
 
 def decompose(data):
@@ -56,8 +59,8 @@ def build_paths_for_embed():
     nama_base_img = input("\n[2] Nama file gambar (tanpa .png): ").strip()
     nama_base_txt = input("[3] Nama file pesan (tanpa .txt): ").strip()
 
-    cover_path = os.path.join(DATASET_DIR, folder_res, f"{nama_base_img}.png")
-    payload_path = os.path.join(BASE_DIR, f"{nama_base_txt}.txt")
+    cover_path = os.path.join(GAMBAR_DIR, folder_res, f"{nama_base_img}.png")
+    payload_path = os.path.join(PESAN_DIR, f"{nama_base_txt}.txt")
 
     out_dir = os.path.join(HASIL_DIR, folder_res)
     os.makedirs(out_dir, exist_ok=True)

@@ -5,7 +5,15 @@ from Crypto.Random import get_random_bytes
 from modul_kripto import AESCipher128
 from modul_stego import embed_hybrid
 
-DATASET_DIR = "dataset"
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
+DATASET_DIR = os.path.join(PROJECT_ROOT, "dataset")    # global
+GAMBAR_DIR = os.path.join(DATASET_DIR, "gambar")       # folder gambar
+PESAN_DIR = os.path.join(DATASET_DIR, "pesan")         # folder pesan
+HASIL_DIR = os.path.join(SCRIPT_DIR, "hasil_stego")    # lokal hybrid
+
 IMAGE_CAPACITY = {
     "128 x 128": 16384,
     "256 x 256": 65536,
@@ -14,7 +22,7 @@ IMAGE_CAPACITY = {
 }
 
 def pilih_folder():
-    folders = [f for f in os.listdir(DATASET_DIR) if f in IMAGE_CAPACITY]
+    folders = [f for f in os.listdir(GAMBAR_DIR) if f in IMAGE_CAPACITY]
     folders.sort(key=lambda x: int(x.split(' ')[0]))
     print("\n[1] PILIH RESOLUSI:")
     for i, f in enumerate(folders):
@@ -31,7 +39,7 @@ def main():
     
     # 2. Input Gambar Cover .png
     nama_base_img = input("Ketik nama file gambar (tanpa .png, cth: image): ").strip()
-    image_path = os.path.join(DATASET_DIR, folder_res, f"{nama_base_img}.png")
+    image_path = os.path.join(GAMBAR_DIR, folder_res, f"{nama_base_img}.png")
 
     if not os.path.exists(image_path):
         print(f"[Error] File {image_path} tidak ditemukan!")
@@ -39,7 +47,7 @@ def main():
 
     # 3. Membaca Pesan dari File .txt 
     nama_base_txt = input("Masukkan nama file pesan (tanpa .txt, cth: pesan): ").strip()
-    path_txt = f"{nama_base_txt}.txt"
+    path_txt = os.path.join(PESAN_DIR, f"{nama_base_txt}.txt")
     
     try:
         with open(path_txt, 'r', encoding='utf-8') as f:
@@ -67,9 +75,8 @@ def main():
     total_encoding_time = waktu_selesai_encoding - waktu_mulai_encoding
     
     # 6. Simpan Hasil
-    output_dir = os.path.join("hasil_stego", folder_res)
-    if not os.path.exists(output_dir): 
-        os.makedirs(output_dir)
+    output_dir = os.path.join(HASIL_DIR, folder_res)
+    os.makedirs(output_dir, exist_ok=True)
         
     # Menggunakan nama_base_img agar konsisten
     path_stego = os.path.join(output_dir, f"{nama_base_img}_stego.png")

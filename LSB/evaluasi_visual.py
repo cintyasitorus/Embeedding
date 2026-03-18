@@ -3,9 +3,14 @@ import numpy as np
 import os, math
 from skimage.metrics import structural_similarity as ssim
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATASET_DIR = os.path.join(BASE_DIR, "dataset")
-HASIL_DIR = os.path.join(BASE_DIR, "hasil_stego")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
+DATASET_DIR = os.path.join(PROJECT_ROOT, "dataset")    # global
+GAMBAR_DIR = os.path.join(DATASET_DIR, "gambar")       # folder gambar
+HASIL_DIR = os.path.join(SCRIPT_DIR, "hasil_stego")    # lokal LSB
+RES_FOLDERS = ["128 x 128", "256 x 256", "512 x 512", "1024 x 1024"]
+
 
 def hitung_kualitas_visual(path_asli, path_stego):
     # 1. Baca kedua gambar
@@ -48,18 +53,17 @@ def main():
     
     # 1. Pilih Resolusi (Menu Interaktif)
     print("\n[1] PILIH RESOLUSI GAMBAR:")
-    res_folders = ["128 x 128", "256 x 256", "512 x 512", "1024 x 1024"]
-    for i, folder in enumerate(res_folders):
+    for i, folder in enumerate(RES_FOLDERS):
         print(f"{i+1}. {folder}")
     
     pilihan = int(input("Pilih nomor (1-4): "))
-    folder_res = res_folders[pilihan-1]
+    folder_res = RES_FOLDERS[pilihan-1]
     
     # 2. Input Nama File (Otomatis tanpa .png)
     nama_base = input("\n[2] Masukkan nama file (tanpa .png, cth: image31244): ").strip()
     
     # 3. Format Path Otomatis
-    path_cover = os.path.join(DATASET_DIR, folder_res, f"{nama_base}.png")
+    path_cover = os.path.join(GAMBAR_DIR, folder_res, f"{nama_base}.png")
     path_stego = os.path.join(HASIL_DIR, folder_res, f"{nama_base}_stego.png")
 
     print(f"\n[*] Membandingkan:")

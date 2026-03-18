@@ -1,25 +1,30 @@
 import cv2
 import os
-import binascii, time
+import time
 from modul_kripto import AESCipher128
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
+HASIL_DIR = os.path.join(SCRIPT_DIR, "hasil_stego")    # lokal hybrid
+RES_FOLDERS = ["128 x 128", "256 x 256", "512 x 512", "1024 x 1024"]
 
 def main():
     print("=== EKSTRAKSI & DEKRIPSI PESAN ===")
     
     # 1. Pilih Resolusi 
     print("\n[1] PILIH RESOLUSI GAMBAR:")
-    res_folders = ["128 x 128", "256 x 256", "512 x 512", "1024 x 1024"]
-    for i, folder in enumerate(res_folders):
+    for i, folder in enumerate(RES_FOLDERS):
         print(f"{i+1}. {folder}")
-    
+
     pilihan = int(input("Pilih nomor (1-4): "))
-    folder_res = res_folders[pilihan-1]
+    folder_res = RES_FOLDERS[pilihan - 1]
     
     # 2. Input Nama File (Otomatis mencari stego.png dan key.txt)
     nama_base = input("\n[2] Masukkan nama file (tanpa .png/.txt, cth: image): ").strip()
     
-    path_stego = f"hasil_stego/{folder_res}/{nama_base}_stego.png"
-    path_log = f"hasil_stego/{folder_res}/{nama_base}_key.txt"
+    path_stego = os.path.join(HASIL_DIR, folder_res, f"{nama_base}_stego.png")
+    path_log = os.path.join(HASIL_DIR, folder_res, f"{nama_base}_key.txt")
 
     if not os.path.exists(path_stego) or not os.path.exists(path_log):
         print(f"\n[X] GAGAL: File tidak ditemukan!")
@@ -28,7 +33,7 @@ def main():
 
     # 3. Proses Pembacaan Log Kunci
     print(f"\n[*] Membaca kunci dari: {path_log}...")
-    with open(path_log, 'r') as f:
+    with open(path_log, "r", encoding="utf-8") as f:
         lines = f.readlines()
     
     key_hex = lines[0].strip().split(":")[1]
@@ -90,7 +95,7 @@ def main():
         total_decoding_time = waktu_selesai_decoding - waktu_mulai_decoding
         
         # Simpan hasilnya ke file teks baru di dalam folder hasil_stego
-        nama_output = f"hasil_stego/{folder_res}/hasil_ekstraksi_{nama_base}.txt"
+        nama_output = os.path.join(HASIL_DIR, folder_res, f"hasil_ekstraksi_{nama_base}.txt")
         
         with open(nama_output, 'w', encoding='utf-8') as f:
             f.write(pesan_asli)
