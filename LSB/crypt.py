@@ -1,13 +1,16 @@
-import base64
-import hashlib
 import os
+import binascii
 from Crypto import Random
 from Crypto.Cipher import AES
 
+
 class AESCipher:
-    def __init__(self, key):
+    def __init__(self, key_hex):
         self.bs = AES.block_size  # 16 bytes
-        self.key = hashlib.sha256(key.encode("utf-8")).digest()[:16] #AES-128
+        key_bytes = binascii.unhexlify(key_hex)
+        if len(key_bytes) != 16:
+            raise ValueError("AES key harus 16 byte (32 hex karakter).")
+        self.key = key_bytes  # pakai key 16-byte langsung, tanpa hashing
 
     def encrypt(self, raw):
         raw = self._pad(raw)
@@ -28,10 +31,11 @@ class AESCipher:
     @staticmethod
     def _unpad(data):
         padding_len = data[-1]
+        if padding_len < 1 or padding_len > 16:
+            raise ValueError("Padding tidak valid.")
         return data[:-padding_len]
 
-# Generate key 
+
 def generate_encryption_key():
-    key = os.urandom(16)  # 16 bytes = 128 bits
-    key_b64 = base64.b64encode(key).decode('utf-8')
-    return key_b64
+    # 16 byte random -> simpan sebagai hex string (32 karakter)
+    return os.urandom(16).hex()

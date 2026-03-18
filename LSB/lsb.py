@@ -104,8 +104,8 @@ def embed(cover_path, payload_path, stego_path, key_path):
     with open(payload_path, "rb") as f:
         data = f.read()
 
-    key_b64 = generate_encryption_key()
-    cipher = AESCipher(key_b64)
+    key_hex = generate_encryption_key()
+    cipher = AESCipher(key_hex)
     data_enc = cipher.encrypt(data)
 
     v = decompose(data_enc)
@@ -135,7 +135,7 @@ def embed(cover_path, payload_path, stego_path, key_path):
     steg_img.save(stego_path, "PNG")
 
     with open(key_path, "w", encoding="utf-8") as f:
-        f.write(f"AES_KEY:{key_b64}\n")
+        f.write(f"AES_KEY:{key_hex}\n")
         f.write(f"TOTAL_BITS:{total_bits}\n")
 
     embed_time = time.time() - start_time
@@ -158,7 +158,7 @@ def extract(stego_path, key_path, out_file):
     with open(key_path, "r", encoding="utf-8") as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
 
-    key_b64= lines[0].split(":", 1)[1]
+    key_hex = lines[0].split(":", 1)[1]
     total_bits = int(lines[1].split(":", 1)[1])
 
     img = Image.open(stego_path)
@@ -182,7 +182,7 @@ def extract(stego_path, key_path, out_file):
         v.extend([0] * (8 - (len(v) % 8)))
 
     data_out = assemble(v)
-    cipher = AESCipher(key_b64)
+    cipher = AESCipher(key_hex)
     data_dec = cipher.decrypt(data_out)
 
     with open(out_file, "wb") as f:
