@@ -3,16 +3,20 @@ import numpy as np
 import random
 
 def get_combined_edge_map(img):
-    # Gaussian Blur 
+    # 1. Gaussian Blur untuk reduksi noise
     blur_img = cv2.GaussianBlur(img, (5, 5), 0)
     
+    # 2. Pemisahan Kanal Warna (OpenCV menggunakan format BGR)
     b, g, r = cv2.split(blur_img)
+    
+    # 3. Deteksi Tepi Canny pada masing-masing kanal
     edge_r = cv2.Canny(r, 50, 150)
     edge_g = cv2.Canny(g, 50, 150)
     edge_b = cv2.Canny(b, 50, 150)
     
-    # Operasi OR
+    # 4. Operasi untuk menggabungkan hasil deteksi tepi dari ketiga kanal (bitwise OR)
     combined = cv2.bitwise_or(edge_r, cv2.bitwise_or(edge_g, edge_b))
+    
     return combined
 
 def embed_hybrid(image_path, bitstream, aes_key):
@@ -36,7 +40,7 @@ def embed_hybrid(image_path, bitstream, aes_key):
     seed = int.from_bytes(aes_key, "big")
     random.seed(seed)
     
-    # PRNG mengacak urutan koordinat Tepi (E)
+    # PRNG mengacak urutan koordinat Tepi (E) 
     random.shuffle(edge_coords) 
     
     # PRNG mengacak urutan koordinat Non-Tepi (S)
@@ -56,7 +60,8 @@ def embed_hybrid(image_path, bitstream, aes_key):
     for i, ((y, x), tipe) in enumerate(targets):
         if bit_idx >= total_bits: break
         
-        ch = channels[i % 3] 
+        # Memilih secara acak satu kanal warna unutk penyisipan bit unutuk nontepi
+        ch = random.choice(channels)
         kanal_str = huruf_kanal[ch]
         
         if tipe == 'E':
@@ -75,8 +80,12 @@ def embed_hybrid(image_path, bitstream, aes_key):
             bit_idx += 3
             
         else:
+            # --- PENYISIPAN NON-TEPI (1-BIT Acak Kanal) ---
             bit = int(bitstream[bit_idx])
+            
+            # Modifikasi 1 bit LSB (& 0xFE) di 1 kanal acak
             img[y, x][ch] = (img[y, x][ch] & 0xFE) | bit
+            
             used_log.append(f"{y},{x},S,{kanal_str}")
             bit_idx += 1
 

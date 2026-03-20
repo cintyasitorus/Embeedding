@@ -23,6 +23,7 @@ class AESCipher128:
         
         # 4. Konversi Bytes ke Bitstream String
         bitstream = ''.join(format(b, '08b') for b in full_data)
+        
         return bitstream
 
     def decrypt_from_bitstream(self, bitstream, key_hex):

@@ -49,7 +49,7 @@ def hitung_kualitas_visual(path_asli, path_stego):
     return nilai_mse, nilai_psnr, nilai_ssim
 
 def main():
-    print("=== PENGUJIAN KUALITAS VISUAL (MSE, PSNR, SSIM) dan PERM ===")
+    print("=== PENGUJIAN KUALITAS VISUAL (MSE, PSNR, SSIM) ===")
     
     # 1. Pilih Resolusi (Menu Interaktif)
     print("\n[1] PILIH RESOLUSI GAMBAR:")

@@ -101,7 +101,7 @@ def main():
             f.write(pesan_asli)
             
         print(f"\n[V] SUKSES! Ekstraksi dan Dekripsi berhasil.")
-        print(f"Waktu total decoding: {total_decoding_time:.2f} detik")
+        print(f"Waktu total decoding: {total_decoding_time:.4f} detik")
         print(f"Pesan Anda sudah dikembalikan dan disimpan di: {nama_output}")
         
     except Exception as e:
