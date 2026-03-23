@@ -33,11 +33,17 @@ def main():
 
     # 3. Proses Pembacaan Log Kunci
     print(f"\n[*] Membaca kunci dari: {path_log}...")
+    # Membuka file log (.txt) dalam mode baca ('r') secara aman
     with open(path_log, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+        lines = f.readlines() # Membaca seluruh isi file teks dan menyimpannya ke dalam list 'lines'
     
+    # Mengambil string kunci AES dari baris pertama (indeks 0) setelah tanda ':'
     key_hex = lines[0].strip().split(":")[1]
+    
+    # Mengambil angka total bit dari baris kedua (indeks 1) lalu diubah ke tipe integer
     total_bits = int(lines[1].strip().split(":")[1])
+    
+    # Memecah seluruh baris sisanya (indeks 2 ke bawah) berdasarkan tanda koma menjadi list koordinat
     coords = [line.strip().split(',') for line in lines[2:]]
 
     # 4. Ekstraksi Bit dari Piksel Gambar
@@ -58,7 +64,7 @@ def main():
         huruf_kanal = coord[3].strip() 
         
         if tipe == 'E':
-            # --- EKSTRAKSI TEPI BARU (Ambil 1 bit dari R, G, B) ---
+            # --- EKSTRAKSI TEPI (Ambil 1 bit dari R, G, B) ---
             # Ingat: OpenCV menggunakan format B=0, G=1, R=2
             bit_r = str(img[y, x][2] & 0x01)
             bit_g = str(img[y, x][1] & 0x01)
@@ -72,7 +78,7 @@ def main():
             bit_count += min(3, needed)
             
         else:
-            # --- EKSTRAKSI NON-TEPI (Tetap 1 bit di kanal yang tertulis) ---
+            # --- EKSTRAKSI NON-TEPI (Tetap 1 bit di kanal yang terpilih) ---
             ch = {'R': 2, 'G': 1, 'B': 0}[huruf_kanal]
             pixel_val = img[y, x][ch]
             
