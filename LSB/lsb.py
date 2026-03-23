@@ -17,9 +17,10 @@ RES_FOLDERS = ["128 x 128", "256 x 256", "512 x 512", "1024 x 1024"]
 def decompose(data):
     v = []
     fsize = len(data)
+    # Tambahkan 4 byte di depan untuk menyimpan ukuran data (payload)
     data_bytes = list(struct.pack("i", fsize)) + list(data)
-    for b in data_bytes:
-        for i in range(7, -1, -1):
+    for b in data_bytes: # iterasi setiap byte, lalu dekomposisi ke bit
+        for i in range(7, -1, -1): 
             v.append((b >> i) & 1)
     return v
 
@@ -27,22 +28,24 @@ def decompose(data):
 def assemble(v):
     bytes_out = b""
     length = len(v)
-    for idx in range(0, len(v) // 8):
+    # iterasi setiap 8 bit untuk membentuk 1 byte
+    for idx in range(0, len(v) // 8): 
         byte = 0
         for i in range(0, 8):
             if idx * 8 + i < length:
-                byte = (byte << 1) + v[idx * 8 + i]
+                byte = (byte << 1) + v[idx * 8 + i] 
         bytes_out += bytes([byte])
 
+    # Ambil 4 byte pertama untuk mendapatkan ukuran data asli (payload)
     payload_size = struct.unpack("i", bytes_out[:4])[0]
     return bytes_out[4: payload_size + 4]
 
 
 def set_bit(n, i, x):
     mask = 1 << i
-    n &= ~mask
+    n &= ~mask # Menghapus bit pada posisi i
     if x:
-        n |= mask
+        n |= mask # Menyisipkan bit x ke posisi i
     return n
 
 
@@ -67,8 +70,9 @@ def build_paths_for_embed():
 
     stego_path = os.path.join(out_dir, f"{nama_base_img}_stego.png")
     key_path = os.path.join(out_dir, f"{nama_base_img}_key.txt")
+    coords_path = os.path.join(out_dir, f"{nama_base_img}_coords.txt")
 
-    return folder_res, nama_base_img, cover_path, payload_path, stego_path, key_path
+    return folder_res, nama_base_img, cover_path, payload_path, stego_path, key_path, coords_path
 
 
 def build_paths_for_extract():
@@ -77,12 +81,13 @@ def build_paths_for_extract():
 
     stego_path = os.path.join(HASIL_DIR, folder_res, f"{nama_base}_stego.png")
     key_path = os.path.join(HASIL_DIR, folder_res, f"{nama_base}_key.txt")
+    coords_path = os.path.join(HASIL_DIR, folder_res, f"{nama_base}_coords.txt")
     out_txt = os.path.join(HASIL_DIR, folder_res, f"hasil_ekstraksi_{nama_base}.txt")
 
-    return folder_res, nama_base, stego_path, key_path, out_txt
+    return folder_res, nama_base, stego_path, key_path, coords_path, out_txt
 
 
-def embed(cover_path, payload_path, stego_path, key_path):
+def embed(cover_path, payload_path, stego_path, key_path, coords_path):
     start_time = time.time()
 
     if not os.path.exists(cover_path):
@@ -92,11 +97,16 @@ def embed(cover_path, payload_path, stego_path, key_path):
         print(f"[X] Payload tidak ditemukan: {payload_path}")
         return None
 
+    # Membuka citra dan menyiapkan data piksel
     img = Image.open(cover_path)
     width, height = img.size
+
+    # Mengonversi ke RGB untuk memastikan 3 kanal warna (R, G, B)
     conv = img.convert("RGB").getdata()
     print(f"[*] Input image size: {width}x{height} pixels.")
 
+
+    # Menghitung kapasitas maksimum (3 bit per piksel)
     max_size_bits = width * height * 3
     max_size_kb = max_size_bits / 8 / 1024
     print(f"[*] Usable payload size: {max_size_kb:.2f} KB ({max_size_bits} bits)")
@@ -115,20 +125,39 @@ def embed(cover_path, payload_path, stego_path, key_path):
     while len(v) % 3:
         v.append(0)
 
+    # Cek apakah payload melebihi kapasitas maksimum
     payload_size_kb = len(v) / 8 / 1024
     if payload_size_kb > max_size_kb - 4:
         print("[-] Cannot embed. File too large")
         return None
 
+    # Menyisipkan bit ke LSB dari setiap kanal warna
     steg_img = Image.new("RGB", (width, height))
     idx = 0
+
+    # Log koordinat hanya untuk bit ciphertext asli (tanpa padding tambahan)
+    coords_log = []
+    logged_bits = 0
+
     for h in range(height):
         for w in range(width):
             r, g, b = conv.getpixel((w, h))
             if idx + 2 < len(v):
                 r = set_bit(r, 0, v[idx])
+                if logged_bits < total_bits:
+                    coords_log.append(f"{h},{w},R")
+                    logged_bits += 1
+
                 g = set_bit(g, 0, v[idx + 1])
+                if logged_bits < total_bits:
+                    coords_log.append(f"{h},{w},G")
+                    logged_bits += 1
+
                 b = set_bit(b, 0, v[idx + 2])
+                if logged_bits < total_bits:
+                    coords_log.append(f"{h},{w},B")
+                    logged_bits += 1
+
             steg_img.putpixel((w, h), (r, g, b))
             idx += 3
 
@@ -138,6 +167,11 @@ def embed(cover_path, payload_path, stego_path, key_path):
         f.write(f"AES_KEY:{key_hex}\n")
         f.write(f"TOTAL_BITS:{total_bits}\n")
 
+    # Simpan file koordinat penyisipan
+    with open(coords_path, "w", encoding="utf-8") as f:
+        f.write("y,x,channel\n")
+        f.write("\n".join(coords_log))
+
     embed_time = time.time() - start_time
     print(f"[V] Embed sukses: {stego_path}")
     print(f"[V] Key file: {key_path}")
@@ -145,7 +179,7 @@ def embed(cover_path, payload_path, stego_path, key_path):
     return embed_time
 
 
-def extract(stego_path, key_path, out_file):
+def extract(stego_path, key_path, coords_path, out_file):
     start_time = time.time()
 
     if not os.path.exists(stego_path):
@@ -154,35 +188,63 @@ def extract(stego_path, key_path, out_file):
     if not os.path.exists(key_path):
         print(f"[X] Key file tidak ditemukan: {key_path}")
         return None
+    if not os.path.exists(coords_path):
+        print(f"[X] Coords file tidak ditemukan: {coords_path}")
+        return None
 
+    # Membaca key dari file
     with open(key_path, "r", encoding="utf-8") as f:
         lines = [line.strip() for line in f.readlines() if line.strip()]
 
     key_hex = lines[0].split(":", 1)[1]
     total_bits = int(lines[1].split(":", 1)[1])
 
+    # Membaca koordinat penyisipan
+    with open(coords_path, "r", encoding="utf-8") as f:
+        coord_lines = [line.strip() for line in f.readlines() if line.strip()]
+
+    # Lewati header "y,x,channel"
+    coords = coord_lines[1:] if coord_lines else []
+
+    # Membuka citra stego dan menyiapkan data piksel
     img = Image.open(stego_path)
     width, height = img.size
     conv = img.convert("RGB").getdata()
 
     v = []
-    for h in range(height):
-        for w in range(width):
-            r, g, b = conv.getpixel((w, h))
-            v.append(r & 1)
-            v.append(g & 1)
-            v.append(b & 1)
-            if len(v) >= total_bits:
-                break
+    for row in coords:
         if len(v) >= total_bits:
             break
+
+        parts = row.split(",") 
+        if len(parts) != 3:
+            continue
+
+        y = int(parts[0])
+        x = int(parts[1])
+        ch = parts[2].strip().upper()
+
+        r, g, b = conv.getpixel((x, y))
+        if ch == "R":
+            v.append(r & 1)
+        elif ch == "G":
+            v.append(g & 1)
+        elif ch == "B":
+            v.append(b & 1)
+
+    if len(v) < total_bits:
+        print(f"[!] Peringatan: bit terkumpul {len(v)} < target {total_bits}")
 
     # assemble butuh kelipatan 8 bit
     if len(v) % 8 != 0:
         v.extend([0] * (8 - (len(v) % 8)))
 
+    # Data hasil ekstraksi dalam bentuk bytes
     data_out = assemble(v)
+    # Inisialisasi cipher dengan kunci yang sama untuk dekripsi
     cipher = AESCipher(key_hex)
+
+    # Pemrosesan dekripsi data hasil ekstraksi
     data_dec = cipher.decrypt(data_out)
 
     with open(out_file, "wb") as f:
@@ -198,12 +260,12 @@ def main():
     mode = input("\nSelect mode (e=embed, x=extract, t=test_evaluation): ").strip().lower()
 
     if mode == "e":
-        folder_res, nama_base, cover_path, payload_path, stego_path, key_path = build_paths_for_embed()
-        embed(cover_path, payload_path, stego_path, key_path)
+        folder_res, nama_base, cover_path, payload_path, stego_path, key_path, coords_path = build_paths_for_embed()
+        embed(cover_path, payload_path, stego_path, key_path, coords_path)
 
     elif mode == "x":
-        _, _, stego_path, key_path, out_txt = build_paths_for_extract()
-        extract(stego_path, key_path, out_txt)
+        _, _, stego_path, key_path, coords_path, out_txt = build_paths_for_extract()
+        extract(stego_path, key_path, coords_path, out_txt)
 
     elif mode == "t":
         print("\n[VISUAL EVALUATION]")
