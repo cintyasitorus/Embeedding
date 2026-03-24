@@ -93,6 +93,7 @@ def main():
     # 5. Dekripsi AES
     print("[*] Melakukan dekripsi pesan (AES-128 CBC)...")
     try:
+        #Inisialisasi objek dan proses dekripsi
         cipher_aes = AESCipher128(None)
         pesan_asli = cipher_aes.decrypt_from_bitstream(bitstream, key_hex)
         
@@ -100,7 +101,7 @@ def main():
         waktu_selesai_decoding = time.time()
         total_decoding_time = waktu_selesai_decoding - waktu_mulai_decoding
         
-        # Simpan hasilnya ke file teks baru di dalam folder hasil_stego
+        # Penyimpanan hasil dekripsi ke file teks (.txt)
         nama_output = os.path.join(HASIL_DIR, folder_res, f"hasil_ekstraksi_{nama_base}.txt")
         
         with open(nama_output, 'w', encoding='utf-8') as f:
