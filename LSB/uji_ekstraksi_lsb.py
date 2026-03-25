@@ -4,6 +4,7 @@ import struct
 from PIL import Image
 from evaluasi_visual import main as evaluasi_main
 from crypt import AESCipher, generate_encryption_key
+from modul_ekstraksi import extract_normal_mode, extract_blind_mode
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
@@ -179,83 +180,6 @@ def embed(cover_path, payload_path, stego_path, key_path, coords_path):
     return embed_time
 
 
-def extract(stego_path, key_path, coords_path, out_file):
-    start_time = time.time()
-
-    if not os.path.exists(stego_path):
-        print(f"[X] Stego tidak ditemukan: {stego_path}")
-        return None
-    if not os.path.exists(key_path):
-        print(f"[X] Key file tidak ditemukan: {key_path}")
-        return None
-    if not os.path.exists(coords_path):
-        print(f"[X] Coords file tidak ditemukan: {coords_path}")
-        return None
-
-    # Membaca key dari file
-    with open(key_path, "r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f.readlines() if line.strip()]
-
-    key_hex = lines[0].split(":", 1)[1]
-    total_bits = int(lines[1].split(":", 1)[1])
-
-    # Membaca koordinat penyisipan
-    with open(coords_path, "r", encoding="utf-8") as f:
-        coord_lines = [line.strip() for line in f.readlines() if line.strip()]
-
-    # Lewati header "y,x,channel"
-    coords = coord_lines[1:] if coord_lines else []
-
-    # Membuka citra stego dan menyiapkan data piksel
-    img = Image.open(stego_path)
-    width, height = img.size
-    conv = img.convert("RGB").getdata()
-
-    v = []
-    for row in coords:
-        if len(v) >= total_bits:
-            break
-
-        parts = row.split(",") 
-        if len(parts) != 3:
-            continue
-
-        y = int(parts[0])
-        x = int(parts[1])
-        ch = parts[2].strip().upper()
-
-        r, g, b = conv.getpixel((x, y))
-        if ch == "R":
-            v.append(r & 1)
-        elif ch == "G":
-            v.append(g & 1)
-        elif ch == "B":
-            v.append(b & 1)
-
-    if len(v) < total_bits:
-        print(f"[!] Peringatan: bit terkumpul {len(v)} < target {total_bits}")
-
-    # assemble butuh kelipatan 8 bit
-    if len(v) % 8 != 0:
-        v.extend([0] * (8 - (len(v) % 8)))
-
-    # Data hasil ekstraksi dalam bentuk bytes
-    data_out = assemble(v)
-    # Inisialisasi cipher dengan kunci yang sama untuk dekripsi
-    cipher = AESCipher(key_hex)
-
-    # Pemrosesan dekripsi data hasil ekstraksi
-    data_dec = cipher.decrypt(data_out)
-
-    with open(out_file, "wb") as f:
-        f.write(data_dec)
-
-    extract_time = time.time() - start_time
-    print(f"[V] Extract sukses: {out_file}")
-    print(f"[V] Waktu extract: {extract_time:.4f} detik")
-    return extract_time
-
-
 def main():
     mode = input("\nSelect mode (e=embed, x=extract, t=test_evaluation): ").strip().lower()
 
@@ -264,8 +188,23 @@ def main():
         embed(cover_path, payload_path, stego_path, key_path, coords_path)
 
     elif mode == "x":
-        _, _, stego_path, key_path, coords_path, out_txt = build_paths_for_extract()
-        extract(stego_path, key_path, coords_path, out_txt)
+        folder_res, nama_base, stego_path, key_path, coords_path, out_txt = build_paths_for_extract()
+
+        # Sub-mode setelah memilih x=extract
+        print("\n[EXTRACTION MODE]")
+        print("1. Normal Extraction (Legitimate User)")
+        print("2. Blind Extraction (Attacker)")
+        extraction_mode = input("Pilih extraction mode (1-2): ").strip()
+
+        if extraction_mode == "1":
+            report_normal = os.path.join(HASIL_DIR, folder_res, f"laporan_ber_normal_{nama_base}.txt")
+            extract_normal_mode(stego_path, key_path, coords_path, out_txt, report_normal)
+        elif extraction_mode == "2":
+            report_blind = os.path.join(HASIL_DIR, folder_res, f"laporan_ber_blind_{nama_base}.txt")
+            out_blind = os.path.join(HASIL_DIR, folder_res, f"hasil_dekripsi_blind_{nama_base}.txt")
+            extract_blind_mode(stego_path, key_path, coords_path, report_blind, out_blind)
+        else:
+            print("Unknown extraction mode.")
 
     elif mode == "t":
         print("\n[VISUAL EVALUATION]")

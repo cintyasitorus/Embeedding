@@ -11,7 +11,7 @@ RES_FOLDERS = ["128 x 128", "256 x 256", "512 x 512", "1024 x 1024"]
 
 def main():
     print("=== EKSTRAKSI & DEKRIPSI PESAN ===")
-
+    
     # 1. Pilih Resolusi 
     print("\n[1] PILIH RESOLUSI GAMBAR:")
     for i, folder in enumerate(RES_FOLDERS):
@@ -25,9 +25,6 @@ def main():
     
     path_stego = os.path.join(HASIL_DIR, folder_res, f"{nama_base}_stego.png")
     path_log = os.path.join(HASIL_DIR, folder_res, f"{nama_base}_key.txt")
-
-    # --- Stopwatch Total Mulai ---
-    waktu_mulai_decoding = time.time()
 
     if not os.path.exists(path_stego) or not os.path.exists(path_log):
         print(f"\n[X] GAGAL: File tidak ditemukan!")
@@ -52,6 +49,8 @@ def main():
     # 4. Ekstraksi Bit dari Piksel Gambar
     print(f"[*] Mengekstraksi {total_bits} bit dari gambar...")
     
+    # --- Stopwatch Total Mulai ---
+    waktu_mulai_decoding = time.time()
 
     img = cv2.imread(path_stego)
     bitstream = ""
@@ -94,19 +93,18 @@ def main():
     # 5. Dekripsi AES
     print("[*] Melakukan dekripsi pesan (AES-128 CBC)...")
     try:
-        #Inisialisasi objek dan proses dekripsi
         cipher_aes = AESCipher128(None)
         pesan_asli = cipher_aes.decrypt_from_bitstream(bitstream, key_hex)
         
+        # --- Stopwatch Total Berhenti ---
+        waktu_selesai_decoding = time.time()
+        total_decoding_time = waktu_selesai_decoding - waktu_mulai_decoding
+        
         # Simpan hasilnya ke file teks baru di dalam folder hasil_stego
-        # Penyimpanan hasil dekripsi ke file teks (.txt)
         nama_output = os.path.join(HASIL_DIR, folder_res, f"hasil_ekstraksi_{nama_base}.txt")
         
         with open(nama_output, 'w', encoding='utf-8') as f:
             f.write(pesan_asli)
-
-        # --- Stopwatch Total Berhenti ---
-        total_decoding_time = time.time() - waktu_mulai_decoding
             
         print(f"\n[V] SUKSES! Ekstraksi dan Dekripsi berhasil.")
         print(f"Waktu total decoding: {total_decoding_time:.4f} detik")
