@@ -1,6 +1,6 @@
 import os
 import time
-from modul_ekstraksi import (
+from modul_ekstraksi_hybrid import (
     read_key_log,
     read_image,
     extract_bitstream_with_coordinates,

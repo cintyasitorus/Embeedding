@@ -4,7 +4,7 @@ import struct
 from PIL import Image
 from evaluasi_visual import main as evaluasi_main
 from crypt import AESCipher, generate_encryption_key
-from modul_ekstraksi import extract_normal_mode, extract_blind_mode
+from modul_ekstraksi_lsb import extract_normal_mode, extract_blind_mode
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
