@@ -99,10 +99,6 @@ def main():
         pesan_asli = cipher_aes.decrypt_from_bitstream(bitstream, key_hex)
         
         # Simpan hasilnya ke file teks baru di dalam folder hasil_stego
-        # --- Stopwatch Total Berhenti ---
-        waktu_selesai_decoding = time.time()
-        total_decoding_time = waktu_selesai_decoding - waktu_mulai_decoding
-        
         # Penyimpanan hasil dekripsi ke file teks (.txt)
         nama_output = os.path.join(HASIL_DIR, folder_res, f"hasil_ekstraksi_{nama_base}.txt")
         
