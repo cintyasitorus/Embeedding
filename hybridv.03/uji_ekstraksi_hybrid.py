@@ -181,7 +181,7 @@ def main():
 
             save_text_file(path_blind_dekripsi, blind_plaintext)
         except Exception as e:
-            dekripsi_blind_status = "GAGAL_UNPADDING_ATAU_FORMAT"
+            dekripsi_blind_status = "GAGAL_UNPADDING"
             dekripsi_blind_catatan = f"Dekripsi blind gagal: {e}"
 
         laporan = (
