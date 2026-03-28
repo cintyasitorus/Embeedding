@@ -54,7 +54,6 @@ docs/_build/
 target/
 
 # Images
-*.png
 *.bmp
 *.jpg
 *.jpeg
