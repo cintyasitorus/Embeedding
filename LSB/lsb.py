@@ -2,6 +2,7 @@ import os
 import time
 import struct
 from PIL import Image
+import matplotlib.pyplot as plt
 from evaluasi_visual import main as evaluasi_main
 from crypt import AESCipher, generate_encryption_key
 
@@ -85,6 +86,130 @@ def build_paths_for_extract():
     out_txt = os.path.join(HASIL_DIR, folder_res, f"hasil_ekstraksi_{nama_base}.txt")
 
     return folder_res, nama_base, stego_path, key_path, coords_path, out_txt
+
+def _load_coords_by_channel(coords_path):
+    xs_r, ys_r = [], []
+    xs_g, ys_g = [], []
+    xs_b, ys_b = [], []
+    xs_all, ys_all = [], []
+
+    with open(coords_path, "r", encoding="utf-8") as f:
+        rows = [line.strip() for line in f.readlines() if line.strip()]
+
+    for row in rows[1:]:
+        parts = row.split(",")
+        if len(parts) != 3:
+            continue
+
+        try:
+            y = int(parts[0])
+            x = int(parts[1])
+        except ValueError:
+            continue
+
+        ch = parts[2].strip().upper()
+        xs_all.append(x)
+        ys_all.append(y)
+
+        if ch == "R":
+            xs_r.append(x)
+            ys_r.append(y)
+        elif ch == "G":
+            xs_g.append(x)
+            ys_g.append(y)
+        elif ch == "B":
+            xs_b.append(x)
+            ys_b.append(y)
+
+    return xs_all, ys_all, xs_r, ys_r, xs_g, ys_g, xs_b, ys_b
+
+
+def plot_embed_scatter_from_coords(coords_path, width, height, out_plot_path):
+    if not os.path.exists(coords_path):
+        print(f"[X] Coords file tidak ditemukan untuk plot: {coords_path}")
+        return
+
+    xs_all, ys_all, xs_r, ys_r, xs_g, ys_g, xs_b, ys_b = _load_coords_by_channel(coords_path)
+
+    if not xs_all:
+        print("[!] Tidak ada koordinat valid untuk diplot.")
+        return
+
+    plt.figure(figsize=(8, 8))
+    plt.scatter(xs_all, ys_all, s=0.25, c="black", alpha=0.20, marker="s", edgecolors="none", linewidths=0, label="All")
+    if xs_r:
+        plt.scatter(xs_r, ys_r, s=0.25, c="red", alpha=0.45, marker="s", edgecolors="none", linewidths=0, label="R")
+    if xs_g:
+        plt.scatter(xs_g, ys_g, s=0.25, c="limegreen", alpha=0.45, marker="s", edgecolors="none", linewidths=0, label="G")
+    if xs_b:
+        plt.scatter(xs_b, ys_b, s=0.25, c="deepskyblue", alpha=0.45, marker="s", edgecolors="none", linewidths=0, label="B")
+
+    plt.xlim(0, width - 1)
+    plt.ylim(height - 1, 0)
+    plt.gca().set_aspect("equal", adjustable="box")
+    plt.gca().xaxis.set_ticks_position("top")
+    plt.gca().xaxis.set_label_position("top")
+    plt.xlabel("x (kolom)")
+    plt.ylabel("y (baris)")
+    plt.title("Sebaran Koordinat Penyisipan LSB")
+    plt.grid(True, linestyle=":", alpha=0.35)
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig(out_plot_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+    print(f"[V] Scatter koordinat tersimpan: {out_plot_path}")
+
+
+def plot_embed_overlay_on_cover(cover_path, coords_path, out_plot_path):
+    if not os.path.exists(cover_path):
+        print(f"[X] Cover file tidak ditemukan untuk overlay: {cover_path}")
+        return
+    if not os.path.exists(coords_path):
+        print(f"[X] Coords file tidak ditemukan untuk overlay: {coords_path}")
+        return
+
+    cover = Image.open(cover_path).convert("RGB")
+    width, height = cover.size
+
+    xs_all, ys_all, xs_r, ys_r, xs_g, ys_g, xs_b, ys_b = _load_coords_by_channel(coords_path)
+
+    if not xs_all:
+        print("[!] Tidak ada koordinat valid untuk overlay.")
+        return
+
+    # Marker dinamis agar tetap terlihat di 256 maupun 1024
+    marker_size = 1.8 if max(width, height) >= 1024 else 3.2
+
+    plt.figure(figsize=(8, 8))
+    plt.imshow(cover)
+
+    # Warna dibuat kontras terhadap background foto alam
+    if xs_r:
+        plt.scatter(xs_r, ys_r, s=marker_size, c="red", alpha=0.95, marker="s",
+                    edgecolors="none", linewidths=0, label=f"R ({len(xs_r)})")
+    if xs_g:
+        plt.scatter(xs_g, ys_g, s=marker_size, c="green", alpha=0.95, marker="s",
+                    edgecolors="none", linewidths=0, label=f"G ({len(xs_g)})")
+    if xs_b:
+        plt.scatter(xs_b, ys_b, s=marker_size, c="blue", alpha=0.95, marker="s",
+                    edgecolors="none", linewidths=0, label=f"B ({len(xs_b)})")
+
+    plt.xlim(0, width - 1)
+    plt.ylim(height - 1, 0)
+    plt.gca().set_aspect("equal", adjustable="box")
+    plt.gca().xaxis.set_ticks_position("top")
+    plt.gca().xaxis.set_label_position("top")
+    plt.xlabel("x (kolom)")
+    plt.ylabel("y (baris)")
+    plt.title("Overlay Koordinat Penyisipan pada Cover Image")
+    plt.grid(True, linestyle=":", alpha=0.35)
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig(out_plot_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+    print(f"[V] Overlay koordinat pada cover tersimpan: {out_plot_path}")
 
 
 def embed(cover_path, payload_path, stego_path, key_path, coords_path):
@@ -171,6 +296,9 @@ def embed(cover_path, payload_path, stego_path, key_path, coords_path):
     with open(coords_path, "w", encoding="utf-8") as f:
         f.write("y,x,channel\n")
         f.write("\n".join(coords_log))
+
+    overlay_path = os.path.splitext(coords_path)[0] + "_overlay.png"
+    plot_embed_overlay_on_cover(cover_path, coords_path, overlay_path)
 
     embed_time = time.time() - start_time
     print(f"[V] Embed sukses: {stego_path}")
