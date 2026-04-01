@@ -107,4 +107,4 @@ def embed_hybrid(image_path, bitstream, aes_key):
     print(f"    -> Piksel Tepi (E) yang terpakai     : {tepi_terpakai} piksel")
     print(f"    -> Piksel Non-Tepi (S) yang terpakai : {smooth_terpakai} piksel")
 
-    return img, used_log, total_bits
+    return img, used_log, total_bits, edge_map

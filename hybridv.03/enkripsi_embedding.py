@@ -1,6 +1,8 @@
 import os
 import binascii
 import cv2, time
+import numpy as np                  
+import matplotlib.pyplot as plt
 from Crypto.Random import get_random_bytes
 from modul_kripto import AESCipher128
 from modul_stego import embed_hybrid
@@ -37,6 +39,80 @@ def pilih_folder():
     pilihan = int(input("Pilih nomor (1-4): "))
     return folders[pilihan-1]
 
+def visualisasi_koordinat(image_path, edge_map, log_koordinat, w, h, output_dir, nama_base_img):
+    print("\n[*] Membuat visualisasi scatter plot & overlay koordinat penyisipan...")
+    
+    # 1. Baca Citra Asli untuk Background Overlay (Konversi BGR ke RGB)
+    img_bgr = cv2.imread(image_path)
+    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+    # 2. Ekstraksi semua koordinat tepi dari edge_map (Canny)
+    coords_yx_canny = np.argwhere(edge_map == 255)
+    canny_x = coords_yx_canny[:, 1] if coords_yx_canny.size > 0 else []
+    canny_y = coords_yx_canny[:, 0] if coords_yx_canny.size > 0 else []
+
+    # 3. Ekstraksi koordinat yang BENAR-BENAR disisipi dari log_koordinat
+    edge_used_x, edge_used_y = [], []
+    smooth_used_x, smooth_used_y = [], []
+    
+    for baris in log_koordinat:
+        parts = baris.split(',')
+        y, x, tipe = int(parts[0]), int(parts[1]), parts[2]
+        if tipe == 'E':
+            edge_used_x.append(x)
+            edge_used_y.append(y)
+        else:
+            smooth_used_x.append(x)
+            smooth_used_y.append(y)
+
+    # 4. Setup Canvas Matplotlib (1 Baris, 2 Kolom)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 7))
+
+    # === PANEL 1: Scatter Plot Canny Edges (Latar Putih) ===
+    if len(canny_x) > 0:
+        ax1.scatter(canny_x, canny_y, s=1, c='red', marker='s', label='Piksel Tepi')
+    ax1.set_xlim(0, w - 1)
+    ax1.set_ylim(h - 1, 0) # y=0 di atas
+    ax1.xaxis.set_ticks_position('top')
+    ax1.xaxis.set_label_position('top')
+    ax1.set_aspect('equal', adjustable='box')
+    ax1.set_xlabel("x (kolom)")
+    ax1.set_ylabel("y (baris)")
+    ax1.set_title(f"1. Peta Tepi Canny\nTotal Tepi Ditemukan: {len(canny_x)} piksel", pad=20)
+    ax1.grid(True, linestyle=":", alpha=0.5)
+    ax1.legend(loc="upper right", fontsize=9)
+
+    # === PANEL 2: Overlay Titik Penyisipan pada Gambar Asli ===
+    # Tampilkan gambar asli sebagai background
+    ax2.imshow(img_rgb)
+    
+    # Timpa dengan titik-titik koordinat (gunakan alpha agar agak transparan)
+    if edge_used_x:
+        ax2.scatter(edge_used_x, edge_used_y, s=1, c='red', marker='s', alpha=0.8, label=f'Tepi Terpakai ({len(edge_used_x)})')
+    if smooth_used_x:
+        ax2.scatter(smooth_used_x, smooth_used_y, s=1, c='blue', marker='s', alpha=0.8, label=f'Non-Tepi Terpakai ({len(smooth_used_x)})')
+    
+    # Format sumbu mengikuti gaya citra
+    ax2.set_xlim(0, w - 1)
+    ax2.set_ylim(h - 1, 0)
+    ax2.xaxis.set_ticks_position('top')
+    ax2.xaxis.set_label_position('top')
+    ax2.set_aspect('equal', adjustable='box')
+    ax2.set_xlabel("x (kolom)")
+    ax2.set_ylabel("y (baris)")
+    ax2.set_title(f"2. Overlay Aktual Penyisipan Pesan\nTotal Piksel Disisipi: {len(edge_used_x) + len(smooth_used_x)} piksel", pad=20)
+    ax2.grid(True, linestyle=":", alpha=0.5)
+    ax2.legend(loc="upper right", fontsize=9)
+
+    plt.suptitle(f"Distribusi Penyisipan Steganografi Hibrida ({w} x {h})", fontsize=14, fontweight='bold', y=1.05)
+    plt.tight_layout()
+
+    # Simpan Gambar Visualisasi
+    vis_path = os.path.join(output_dir, f"{nama_base_img}_scatter_plot.png")
+    plt.savefig(vis_path, bbox_inches='tight', dpi=300)
+    print(f"[V] Visualisasi berhasil disimpan di: {vis_path}")
+    
+    plt.close(fig)
 
 def main():
     print("=== AES + EBE + LSB ===")
@@ -93,8 +169,11 @@ def main():
 
     # 5. Proses Embedding Hybrid (EBE + LSB)
     print("\n[*] Memulai proses Penyisipan (Edge Detection & LSB)...")
-    stgo_img, log_koordinat, total_bits = embed_hybrid(image_path, bitstream, key)
+    stgo_img, log_koordinat, total_bits, edge_map = embed_hybrid(image_path, bitstream, key)
     
+    # Dapatkan dimensi gambar
+    h, w = stgo_img.shape[:2]
+
     # 6. Simpan Hasil
     # Stego image disimpan sebagai .png
     # Key file menyimpan kunci AES, total bit, dan log koordinat
@@ -112,6 +191,9 @@ def main():
         f.write(f"AES_KEY:{key_hex}\n")
         f.write(f"TOTAL_BITS:{total_bits}\n")
         f.write("\n".join(log_koordinat))
+
+    # Panggil fungsi visualisasi di sini
+    visualisasi_koordinat(image_path,edge_map, log_koordinat, w, h, output_dir, nama_base_img)
 
     # --- Stopwatch Total Berhenti ---
     total_encoding_time = time.time() - waktu_mulai_encoding
