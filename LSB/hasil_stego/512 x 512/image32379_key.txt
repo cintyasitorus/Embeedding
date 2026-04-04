@@ -1,2 +1,0 @@
-AES_KEY:cd26acbc4ab41d9b6aa2efaa7ae1a077
-TOTAL_BITS:236192
