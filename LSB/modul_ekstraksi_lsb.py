@@ -99,6 +99,21 @@ def bitstream_to_hex(bitstream):
 	return bytes(data_bytes).hex(), full_bits
 
 
+def export_ciphertext_bitstream_5_komponen(path_output, nama_base, resolusi, total_bits, bits):
+	bitstream = bits_to_bitstream(bits)
+	ciphertext_hex, _ = bitstream_to_hex(bitstream)
+	content = (
+		f"Nama basis file: {nama_base}\n"
+		f"Resolusi: {resolusi}\n"
+		f"Total_bits: {total_bits}\n"
+		f"Ciphertext: {ciphertext_hex}\n"
+		f"Bitstream (0 & 1): {bitstream}\n"
+	)
+	os.makedirs(os.path.dirname(path_output), exist_ok=True)
+	with open(path_output, "w", encoding="utf-8") as f:
+		f.write(content)
+
+
 def calculate_ber(bits_legit, bits_other):
 	n = min(len(bits_legit), len(bits_other))
 	if n == 0:

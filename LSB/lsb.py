@@ -5,6 +5,13 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from evaluasi_visual import main as evaluasi_main
 from crypt import AESCipher, generate_encryption_key
+from modul_ekstraksi_lsb import (
+    read_key_file,
+    read_coords_file,
+    read_stego_pixels,
+    extract_bits_with_coords,
+    export_ciphertext_bitstream_5_komponen,
+)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
@@ -307,7 +314,7 @@ def embed(cover_path, payload_path, stego_path, key_path, coords_path):
     return embed_time
 
 
-def extract(stego_path, key_path, coords_path, out_file):
+def extract(stego_path, key_path, coords_path, out_file, nama_base, folder_res):
     start_time = time.time()
 
     if not os.path.exists(stego_path):
@@ -320,45 +327,11 @@ def extract(stego_path, key_path, coords_path, out_file):
         print(f"[X] Coords file tidak ditemukan: {coords_path}")
         return None
 
-    # Membaca key dari file
-    with open(key_path, "r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f.readlines() if line.strip()]
+    key_hex, total_bits = read_key_file(key_path)
+    coords = read_coords_file(coords_path)
+    px, _, _ = read_stego_pixels(stego_path)
 
-    key_hex = lines[0].split(":", 1)[1]
-    total_bits = int(lines[1].split(":", 1)[1])
-
-    # Membaca koordinat penyisipan
-    with open(coords_path, "r", encoding="utf-8") as f:
-        coord_lines = [line.strip() for line in f.readlines() if line.strip()]
-
-    # Lewati header "y,x,channel"
-    coords = coord_lines[1:] if coord_lines else []
-
-    # Membuka citra stego dan menyiapkan data piksel
-    img = Image.open(stego_path)
-    width, height = img.size
-    conv = img.convert("RGB").getdata()
-
-    v = []
-    for row in coords:
-        if len(v) >= total_bits:
-            break
-
-        parts = row.split(",") 
-        if len(parts) != 3:
-            continue
-
-        y = int(parts[0])
-        x = int(parts[1])
-        ch = parts[2].strip().upper()
-
-        r, g, b = conv.getpixel((x, y))
-        if ch == "R":
-            v.append(r & 1)
-        elif ch == "G":
-            v.append(g & 1)
-        elif ch == "B":
-            v.append(b & 1)
+    v = extract_bits_with_coords(px, coords, total_bits)
 
     if len(v) < total_bits:
         print(f"[!] Peringatan: bit terkumpul {len(v)} < target {total_bits}")
@@ -378,8 +351,22 @@ def extract(stego_path, key_path, coords_path, out_file):
     with open(out_file, "wb") as f:
         f.write(data_dec)
 
+    path_ringkasan = os.path.join(
+        HASIL_DIR,
+        folder_res,
+        f"ringkasan_ciphertext_{nama_base}.txt",
+    )
+    export_ciphertext_bitstream_5_komponen(
+        path_ringkasan,
+        nama_base,
+        folder_res,
+        total_bits,
+        v,
+    )
+
     extract_time = time.time() - start_time
     print(f"[V] Extract sukses: {out_file}")
+    print(f"[V] Ringkasan ciphertext+bitstream: {path_ringkasan}")
     print(f"[V] Waktu extract: {extract_time:.4f} detik")
     return extract_time
 
@@ -392,8 +379,8 @@ def main():
         embed(cover_path, payload_path, stego_path, key_path, coords_path)
 
     elif mode == "x":
-        _, _, stego_path, key_path, coords_path, out_txt = build_paths_for_extract()
-        extract(stego_path, key_path, coords_path, out_txt)
+        folder_res, nama_base, stego_path, key_path, coords_path, out_txt = build_paths_for_extract()
+        extract(stego_path, key_path, coords_path, out_txt, nama_base, folder_res)
 
     elif mode == "t":
         print("\n[VISUAL EVALUATION]")
