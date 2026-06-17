@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import random
+import time
 
 def get_combined_edge_map(img):
     # 1. Gaussian Blur untuk reduksi noise
@@ -57,6 +58,9 @@ def embed_hybrid(image_path, bitstream, aes_key):
     channels = [2, 1, 0] 
     huruf_kanal = {2: 'R', 1: 'G', 0: 'B'}
 
+    # --- Stopwatch Penyisipan Mulai ---
+    waktu_mulai_embed = time.time()
+
     for i, ((y, x), tipe) in enumerate(targets):
         if bit_idx >= total_bits: break
         
@@ -96,6 +100,9 @@ def embed_hybrid(image_path, bitstream, aes_key):
         print(f"Pesan butuh {total_bits} bit, tapi gambar ini hanya muat {bit_idx} bit.")
         raise ValueError("OVERLOAD: Pesan terlalu besar untuk gambar ini.")
 
+    # --- Stopwatch Penyisipan Berhenti ---
+    waktu_embedding = time.time() - waktu_mulai_embed
+
     # Menghitung Statistik
     total_tepi_asli = len(edge_coords)
     tepi_terpakai = sum(1 for x in used_log if ',E,' in x)
@@ -106,5 +113,6 @@ def embed_hybrid(image_path, bitstream, aes_key):
     print(f"[*] LAPORAN PENYISIPAN:")
     print(f"    -> Piksel Tepi (E) yang terpakai     : {tepi_terpakai} piksel")
     print(f"    -> Piksel Non-Tepi (S) yang terpakai : {smooth_terpakai} piksel")
+    print(f"[*] Waktu Penyisipan: {waktu_embedding:.4f} detik")
 
-    return img, used_log, total_bits, edge_map
+    return img, used_log, total_bits, edge_map, waktu_embedding

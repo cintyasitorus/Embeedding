@@ -8,6 +8,7 @@ from modul_kripto import AESCipher128
 from modul_stego import embed_hybrid
 
 
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 
@@ -131,7 +132,7 @@ def main():
     path_txt = os.path.join(PESAN_DIR, f"{nama_base_txt}.txt")
 
     # --- Stopwatch Total Mulai ---
-    waktu_mulai_encoding = time.time()
+    waktu_mulai_enkripsi = time.time()
 
     # Cek cover dan payload
     if not os.path.exists(image_path):
@@ -153,7 +154,6 @@ def main():
     # Pesan dienkripsi menggunakan kunci acak 16 byte (128-bit)
     # Output berupa bitstream string siap sisip
     print("\n[*] Memulai proses Enkripsi AES...")
-    
 
     # Generate kunci acak 16 byte (128-bit) untuk AES
     key = get_random_bytes(16)
@@ -167,10 +167,13 @@ def main():
     # Simpan kunci dalam format hex untuk disimpan ke file key
     key_hex = binascii.hexlify(key).decode()
 
+    # --- Stopwatch Enkripsi Berhenti ---
+    waktu_enkripsi = time.time() - waktu_mulai_enkripsi
+
     # 5. Proses Embedding Hybrid (EBE + LSB)
     print("\n[*] Memulai proses Penyisipan (Edge Detection & LSB)...")
-    stgo_img, log_koordinat, total_bits, edge_map = embed_hybrid(image_path, bitstream, key)
-    
+    stgo_img, log_koordinat, total_bits, edge_map, waktu_embedding = embed_hybrid(image_path, bitstream, key)
+
     # Dapatkan dimensi gambar
     h, w = stgo_img.shape[:2]
 
@@ -195,12 +198,14 @@ def main():
     # Panggil fungsi visualisasi di sini
     visualisasi_koordinat(image_path,edge_map, log_koordinat, w, h, output_dir, nama_base_img)
 
-    # --- Stopwatch Total Berhenti ---
-    total_encoding_time = time.time() - waktu_mulai_encoding
-        
+    # Total waktu encoding (enkripsi + embedding)
+    total_encoding_time = waktu_enkripsi + waktu_embedding
+
     print(f"\n[Sukses] Stego Image & Key File disimpan di: {output_dir}")
     print(f"Total bit terenkripsi yang disisipkan: {total_bits} bit")
-    print(f"Waktu total encoding: {total_encoding_time:.4f} detik")
+    print(f"Waktu enkripsi       : {waktu_enkripsi:.4f} detik")
+    print(f"Waktu penyisipan     : {waktu_embedding:.4f} detik")
+    print(f"Total waktu encoding : {total_encoding_time:.4f} detik")
 
 if __name__ == "__main__":
     main()
