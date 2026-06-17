@@ -57,3 +57,7 @@ target/
 *.bmp
 *.jpg
 *.jpeg
+
+# Izinkan file hasil ekstraksi tesis tetap masuk Git
+!hasil_stego/**/hasil_ekstraksi_*.txt
+!hasil_stego/**/bitstream_result_*.txt
