@@ -174,6 +174,9 @@ def main():
     print("\n[*] Memulai proses Penyisipan (Edge Detection & LSB)...")
     stgo_img, log_koordinat, total_bits, edge_map, waktu_embedding = embed_hybrid(image_path, bitstream, key)
 
+    #stopwatch penyimpanan gambar
+    waktu_simpan = time.time()
+
     # Dapatkan dimensi gambar
     h, w = stgo_img.shape[:2]
 
@@ -195,16 +198,20 @@ def main():
         f.write(f"TOTAL_BITS:{total_bits}\n")
         f.write("\n".join(log_koordinat))
 
+    # --- Stopwatch Penyimpanan Berhenti ---
+    waktu_simpan_gambar = time.time() - waktu_simpan
+
     # Panggil fungsi visualisasi di sini
     visualisasi_koordinat(image_path,edge_map, log_koordinat, w, h, output_dir, nama_base_img)
 
     # Total waktu encoding (enkripsi + embedding)
-    total_encoding_time = waktu_enkripsi + waktu_embedding
+    total_encoding_time = waktu_enkripsi + waktu_embedding + waktu_simpan_gambar
 
     print(f"\n[Sukses] Stego Image & Key File disimpan di: {output_dir}")
     print(f"Total bit terenkripsi yang disisipkan: {total_bits} bit")
     print(f"Waktu enkripsi       : {waktu_enkripsi:.4f} detik")
     print(f"Waktu penyisipan     : {waktu_embedding:.4f} detik")
+    print(f"Waktu penyimpanan gambar : {waktu_simpan_gambar:.4f} detik")
     print(f"Total waktu encoding : {total_encoding_time:.4f} detik")
 
 if __name__ == "__main__":
