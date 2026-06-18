@@ -303,11 +303,11 @@ def embed(cover_path, payload_path, stego_path, key_path, coords_path):
     with open(coords_path, "w", encoding="utf-8") as f:
         f.write("y,x,channel\n")
         f.write("\n".join(coords_log))
+    embed_time = time.time() - start_time
 
     overlay_path = os.path.splitext(coords_path)[0] + "_overlay.png"
     plot_embed_overlay_on_cover(cover_path, coords_path, overlay_path)
 
-    embed_time = time.time() - start_time
     print(f"[V] Embed sukses: {stego_path}")
     print(f"[V] Key file: {key_path}")
     print(f"[V] Waktu embed: {embed_time:.4f} detik")
